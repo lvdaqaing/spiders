@@ -1,0 +1,26 @@
+1.创建一个新的项目
+scrapy startproject [项目名]
+
+2.生成爬虫
+scrapy genspider +文件名+网址
+
+3.运行(crawl)
+scrapy crawl +爬虫名称
+scrapy crawl [爬虫名] -o zufang.json
+# -o output
+scrapy crawl [爬虫名] -o zufang.csv
+
+4.check检查错误
+scrapy check
+
+5.list返回项目所有spider名称
+scrapy list
+
+6. view 存储、打开网页
+scrapy view https://www.baidu.com
+
+7. scrapy shell，进入终端
+scrapy shell https://www.baidu.com
+
+8. scrapy runspider
+scrapy runspider zufang_spider.py

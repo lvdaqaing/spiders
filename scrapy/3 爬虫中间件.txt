@@ -1,0 +1,10 @@
+爬虫中间件的作用：
+处理引擎传递给爬虫的响应；
+处理爬虫传递给引擎的请求；
+处理爬虫传递给引擎的数据项。
+
+scrapy提供的基本爬虫中间件
+https://docs.scrapy.org/en/latest/topics/settings.html#std:setting-SPIDER_MIDDLEWARES_BASE
+
+如何自定义爬虫中间件
+https://docs.scrapy.org/en/latest/topics/spider-middleware.html#writing-your-own-spider-middleware

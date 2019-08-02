@@ -1,0 +1,119 @@
+https://docs.scrapy.org/en/latest/topics/item-pipeline.html
+
+每个管道组件都是一个实现了某个功能的Python类，常见功能有：
+清理html数据
+做确认
+查重
+存入数据库
+
+每个管道组件的类，必须要有以下方法：
+process_item(self, item, spider)
+open_spider(self, spider)
+close_spider(self, spider)
+from_crawler(cls, crawler)
+
+
+# 丢弃数据项
+from scrapy.exceptions import DropItem
+
+class PricePipeline(object):
+
+    vat_factor = 1.15
+
+    def process_item(self, item, spider):
+        if item['price']:
+            if item['price_excludes_vat']:
+                item['price'] = item['price'] * self.vat_factor
+            return item
+        else:
+            raise DropItem("Missing price in %s" % item)
+
+
+# 存储到MongoDB
+
+import pymongo
+
+class MongoPipeline(object):
+
+    collection_name = 'scrapy_items'
+
+    def __init__(self, mongo_uri, mongo_db):
+        self.mongo_uri = mongo_uri
+        self.mongo_db = mongo_db
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(
+            mongo_uri=crawler.settings.get('MONGO_URI'),
+            mongo_db=crawler.settings.get('MONGO_DATABASE', 'items')
+        )
+
+    def open_spider(self, spider):
+        self.client = pymongo.MongoClient(self.mongo_uri)
+        self.db = self.client[self.mongo_db]
+
+    def close_spider(self, spider):
+        self.client.close()
+
+    def process_item(self, item, spider):
+        self.db[self.collection_name].insert_one(dict(item))
+        return item
+
+
+# 存储到MySQL
+class MysqlPipeline():
+    def __init__(self, host, database, user, password, port):
+        self.host = host
+        self.database = database
+        self.user = user
+        self.password = password
+        self.port = port
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(
+            host=crawler.settings.get('MYSQL_HOST'),
+            database=crawler.settings.get('MYSQL_DATABASE'),
+            user=crawler.settings.get('MYSQL_USER'),
+            password=crawler.settings.get('MYSQL_PASSWORD'),
+            port=crawler.settings.get('MYSQL_PORT'),
+        )
+
+    def open_spider(self, spider):
+        self.db = pymysql.connect(self.host, self.user, self.password, self.database, charset='utf8',
+                                  port=self.port)
+        self.cursor = self.db.cursor()
+
+    def close_spider(self, spider):
+        self.db.close()
+
+    def process_item(self, item, spider):
+        print(item['title'])
+        data = dict(item)
+        keys = ', '.join(data.keys())
+        values = ', '.join(['%s'] * len(data))
+        sql = 'insert into %s (%s) values (%s)' % (item.table, keys, values)
+        self.cursor.execute(sql, tuple(data.values()))
+        self.db.commit()
+        return item
+
+# 去重
+from scrapy.exceptions import DropItem
+
+class DuplicatesPipeline(object):
+
+    def __init__(self):
+        self.ids_seen = set()
+
+    def process_item(self, item, spider):
+        if item['id'] in self.ids_seen:
+            raise DropItem("Duplicate item found: %s" % item)
+        else:
+            self.ids_seen.add(item['id'])
+            return item
+
+# 激活管道
+ITEM_PIPELINES = {
+    'myproject.pipelines.PricePipeline': 300,
+    'myproject.pipelines.JsonWriterPipeline': 800,
+}

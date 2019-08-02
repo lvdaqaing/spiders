@@ -1,0 +1,50 @@
+# 参考文章：
+# https://www.jianshu.com/p/a94d7de5560f
+
+下载器中间件按照优先级被调用的：当request从引擎向下载器传递时，数字小的下载器中间件先执行，数字大的后执行；当下载器将response向引擎传递，数字大的下载器中间件先执行，小的后执行。
+
+
+scrapy提供了一套基本的下载器中间件，
+
+{
+    'scrapy.downloadermiddlewares.robotstxt.RobotsTxtMiddleware': 100,
+    'scrapy.downloadermiddlewares.httpauth.HttpAuthMiddleware': 300,
+    'scrapy.downloadermiddlewares.downloadtimeout.DownloadTimeoutMiddleware': 350,
+    'scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware': 400,
+    'scrapy.downloadermiddlewares.useragent.UserAgentMiddleware': 500,
+    'scrapy.downloadermiddlewares.retry.RetryMiddleware': 550,
+    'scrapy.downloadermiddlewares.ajaxcrawl.AjaxCrawlMiddleware': 560,
+    'scrapy.downloadermiddlewares.redirect.MetaRefreshMiddleware': 580,
+    'scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware': 590,
+    'scrapy.downloadermiddlewares.redirect.RedirectMiddleware': 600,
+    'scrapy.downloadermiddlewares.cookies.CookiesMiddleware': 700,
+    'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 750,
+    'scrapy.downloadermiddlewares.stats.DownloaderStats': 850,
+    'scrapy.downloadermiddlewares.httpcache.HttpCacheMiddleware': 900,
+}
+
+见链接
+https://docs.scrapy.org/en/latest/topics/settings.html#std:setting-DOWNLOADER_MIDDLEWARES_BASE
+
+
+
+
+下载器中间件是个类，类里可以定义方法，例如process_request()，process_response()，process_exception()
+
+process_request():
+
+process_request()的参数是request, spider
+
+参数request是个字典，字典里包含了headers、url等信息
+
+process_request()可以利用参数request里面的信息，对请求做修改，这时一般返回的是None，典型的任务是修改User-agent、变换代理
+
+如果根据参数request里的url直接就去做抓取，返回response对象，返回的response对象就会不经过剩下的下载器中间件，直接返回到引擎
+
+如果对请求做了修改，返回的是request对象，就会发回到调度器，等待调度
+
+
+
+process_response(request, response, spider)
+
+返回的必须是Response、Request或IgnoreRequest异常
